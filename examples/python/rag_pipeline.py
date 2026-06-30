@@ -30,49 +30,45 @@ def preprocess_page(raw_html: str) -> str:
     before = result["originalBytes"]
     after = result["compressedBytes"]
     print(f"HTML: {before}B → {after}B ({result['savingsPct']:.0f}% saved)")
-    return result["html"]
+    return result["compressed"]
 
 
 # --- Step 2: Chunk for embedding ---
-def chunk_for_embedding(text: str, max_tokens: int = 256, overlap: int = 32) -> list[str]:
-    result = chunk_text(text, max_tokens=max_tokens, overlap=overlap, strategy="sentence")
-    chunks = [c["text"] for c in result["chunks"]]
-    print(f"Produced {len(chunks)} chunks ({result['totalTokens']} total tokens)")
+def chunk_for_embedding(text: str, chunk_size: int = 256, overlap: int = 32) -> list[dict]:
+    chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap, strategy="sentence")
+    print(f"Produced {len(chunks)} chunks")
     return chunks
 
 
-# --- Step 3: Query expansion for better retrieval ---
-def expand_and_retrieve(query: str, chunks: list[str], top_k: int = 5) -> list[dict]:
-    # Expand query with synonyms/variants for better recall
+# --- Step 3: Query expansion + rerank ---
+def expand_and_retrieve(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
     expanded = expand_query(query)
-    all_variants = [query] + expanded["variants"]
-    print(f"Query expanded: {len(all_variants)} variants")
+    all_variants = expanded["terms"]  # includes original + synonyms
+    print(f"Query expanded: {all_variants}")
 
-    # Score each chunk against all query variants, take max
+    # Score each chunk against all variants, take max
     scored = []
     for chunk in chunks:
         max_score = max(
-            score_relevance(variant, chunk)["score"]
+            score_relevance(variant, chunk["text"])["score"]
             for variant in all_variants
         )
-        scored.append({"chunk": chunk, "score": max_score})
+        scored.append({"text": chunk["text"], "score": max_score})
 
-    # Re-rank and return top-K
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
 
 
 # --- Step 4: Pack chunks into context budget ---
 def pack_context(ranked: list[dict], budget: int) -> str:
-    parts = [item["chunk"] for item in ranked]
-    joined = "\n\n---\n\n".join(parts)
+    joined = "\n\n---\n\n".join(item["text"] for item in ranked)
 
     est = estimate_tokens(joined)
     if est["tokens"] <= budget:
         return joined
 
     trimmed = trim_to_tokens(joined, max_tokens=budget, strategy="end")
-    return trimmed["text"]
+    return trimmed["trimmed"]
 
 
 # --- Demo ---
@@ -104,7 +100,7 @@ raw_html = """
 
 # Full pipeline
 clean_text = preprocess_page(raw_html)
-chunks = chunk_for_embedding(clean_text, max_tokens=100, overlap=15)
+chunks = chunk_for_embedding(clean_text, chunk_size=100, overlap=15)
 
 query = "what algorithms do vector databases use for similarity search?"
 top_chunks = expand_and_retrieve(query, chunks, top_k=3)
@@ -116,11 +112,11 @@ print(f"\nContext ready: {final_tokens} tokens, {len(top_chunks)} chunks")
 # Optional: summarize if still too long
 if final_tokens > 2000:
     summary = summarize_for_llm(context, max_tokens=500, strategy="extractive")
-    print(f"Summarized to {estimate_tokens(summary['summary'])['tokens']} tokens")
+    print(f"Summarized to {summary['summaryTokens']} tokens")
     context = summary["summary"]
 
 # Extract keywords for metadata/tagging
-keywords = extract_keywords(clean_text, top_n=8)
+keywords = extract_keywords(clean_text, max_keywords=8)
 print("\nTop keywords:", [k["word"] for k in keywords["keywords"]])
 print("\n--- Final context ---")
 print(context)

@@ -24,22 +24,22 @@ def tool_extract_json(raw_text: str) -> dict:
     """Pull JSON out of noisy LLM output."""
     result = extract_json(raw_text)
     return {
-        "found": len(result["found"]),
-        "objects": [item["value"] for item in result["found"]],
+        "found": result["count"],
+        "objects": [block["parsed"] for block in result["blocks"]],
     }
 
 def tool_fix_json(broken_json: str) -> dict:
     """Repair malformed JSON."""
     result = repair_json(broken_json)
-    return {"fixed": result["json"], "changes": result["fixes"]}
+    return {"fixed": result["repaired"], "changes": result["fixes"]}
 
 def tool_validate(data: dict, schema: dict) -> dict:
     """Validate data against a JSON Schema."""
     result = validate_json_schema(data, schema)
     return {"valid": result["valid"], "errors": result["errors"]}
 
-def tool_diff(before: str, after: str) -> dict:
-    """Show what changed between two JSON configs."""
+def tool_diff(before: dict, after: dict) -> dict:
+    """Show what changed between two JSON objects."""
     result = diff_json(before, after)
     changes = [e for e in result["entries"] if e["op"] != "unchanged"]
     return {"changes": changes, "total": len(changes)}
@@ -50,16 +50,15 @@ def tool_extract_entities(text: str) -> dict:
 
 def tool_extract_urls(text: str) -> list[str]:
     """Pull all URLs from text."""
-    return extract_urls(text)["urls"]
+    return [u["url"] for u in extract_urls(text)["urls"]]
 
 def tool_sanitize_html(html: str) -> str:
     """Remove dangerous tags before rendering HTML."""
-    return sanitize_html(html)["html"]
+    return sanitize_html(html)["text"]
 
-def tool_dedup_lines(text: str, case_sensitive: bool = False) -> str:
+def tool_dedup_lines(text: str) -> str:
     """Remove duplicate lines."""
-    result = deduplicate_lines(text, case_sensitive=case_sensitive)
-    return result["text"]
+    return deduplicate_lines(text, strategy="case-insensitive")["lines"]
 
 
 # --- Demo: simulate an agent processing LLM output ---
@@ -83,7 +82,7 @@ print("\n=== Extract entities ===")
 entities = tool_extract_entities(llm_output)
 for entity_type, values in entities.items():
     if values:
-        print(f"  {entity_type}: {values}")
+        print(f"  {entity_type}: {[v['value'] for v in values]}")
 
 print("\n=== Extract URLs ===")
 urls = tool_extract_urls(llm_output)
@@ -101,7 +100,7 @@ user_schema = {
     "properties": {
         "name": {"type": "string"},
         "age": {"type": "integer", "minimum": 0},
-        "email": {"type": "string", "format": "email"},
+        "email": {"type": "string"},
     },
     "required": ["name", "email"],
 }
@@ -110,10 +109,32 @@ invalid_result = tool_validate({"name": "Bob", "age": "thirty"}, user_schema)
 print(f"  Valid user: {valid_result['valid']}")
 print(f"  Invalid user: {invalid_result['valid']}, errors: {invalid_result['errors']}")
 
+print("\n=== Flatten nested JSON ===")
+nested = {"database": {"host": "localhost", "port": 5432, "ssl": {"enabled": True}}}
+flat = flatten_json(nested)
+for k, v in flat.items():
+    print(f"  {k}: {v}")
+
+print("\n=== Deep merge ===")
+base = {"status": "ok", "data": {"users": 10}}
+extra = {"data": {"revenue": 5000}, "version": "2.0"}
+merged = merge_json(base, extra)
+print(f"  Merged: {json.dumps(merged['merged'])}")
+
 print("\n=== Diff two configs ===")
-v1 = json.dumps({"version": "1.0", "plan": "free", "rateLimit": 100})
-v2 = json.dumps({"version": "2.0", "plan": "pro", "rateLimit": 5000, "webhooks": True})
+v1 = {"version": "1.0", "plan": "free", "rateLimit": 100}
+v2 = {"version": "2.0", "plan": "pro", "rateLimit": 5000, "webhooks": True}
 diff = tool_diff(v1, v2)
 print(f"  {diff['total']} changes:")
 for c in diff["changes"]:
     print(f"    {c['op']:8s} {c['path']}: {c.get('oldValue')} → {c.get('newValue')}")
+
+print("\n=== Sanitize HTML ===")
+dirty = '<p>Hello <script>alert("xss")</script> <a href="x" onclick="steal()">world</a></p>'
+clean = tool_sanitize_html(dirty)
+print(f"  Clean: {clean}")
+
+print("\n=== Deduplicate lines ===")
+duped = "apple\nBanana\napple\ncherry\nbanana\ncherry\napricot"
+unique_lines = tool_dedup_lines(duped)
+print(f"  Unique: {unique_lines}")

@@ -15,25 +15,24 @@ const llmOutput = `
   Let me know if you need anything else.
 `
 const extracted = extractJson(llmOutput)
-console.log(extracted.found[0].value) // { name: 'Alice', score: 42, tags: [...] }
+console.log(extracted.blocks[0].parsed) // { name: 'Alice', score: 42, tags: [...] }
 
-// --- Flatten nested config for diffing ---
+// --- Flatten nested config ---
 const config = { database: { host: 'localhost', port: 5432, ssl: { enabled: true } } }
 const flat = flattenJson(config)
 console.log(flat)
 // { 'database.host': 'localhost', 'database.port': 5432, 'database.ssl.enabled': true }
 
 // --- Deep merge tool outputs ---
-const toolResults = [
+const merged = mergeJson(
   { status: 'ok', data: { users: 10 } },
-  { status: 'ok', data: { revenue: 5000 } },
-]
-const merged = mergeJson(toolResults)
-console.log(merged.result) // { status: 'ok', data: { users: 10, revenue: 5000 } }
+  { data: { revenue: 5000 } },
+)
+console.log(merged.merged) // { status: 'ok', data: { users: 10, revenue: 5000 } }
 
-// --- Diff before/after states ---
-const before = '{"plan":"free","limit":100,"features":["export"]}'
-const after  = '{"plan":"pro","limit":5000,"features":["export","api"]}'
+// --- Diff before/after states (pass objects, not strings) ---
+const before = { plan: 'free', limit: 100, features: ['export'] }
+const after  = { plan: 'pro',  limit: 5000, features: ['export', 'api'] }
 const diff = diffJson(before, after)
 diff.entries.filter(e => e.op !== 'unchanged').forEach(e =>
   console.log(e.op, e.path, e.oldValue, '→', e.newValue)
@@ -50,12 +49,18 @@ const schema = {
 }
 const result = validateJsonSchema({ name: 'Bob', age: 'thirty' }, schema)
 console.log(result.valid)  // false
-console.log(result.errors) // [ 'age must be a number' ]
+console.log(result.errors) // [{ path: 'age', message: '...' }]
+
+// --- Repair malformed JSON ---
+const broken = "{'key': 'value', 'list': [1, 2, 3,]}"
+const repaired = repairJson(broken)
+console.log(repaired.repaired) // {"key": "value", "list": [1, 2, 3]}
+console.log(repaired.fixes)    // ['Replaced single quotes...', 'Removed trailing commas']
 
 // --- Compress JSON to reduce tokens ---
-const bloated = JSON.stringify({
+const bloated = {
   users: [{ id: 1, name: 'Alice', deletedAt: null, metadata: {} }],
-})
+}
 const compressed = compressJson(bloated, { removeNulls: true, removeEmptyObjects: true })
-console.log(compressed.json) // {"users":[{"id":1,"name":"Alice"}]}
-console.log(`Saved ${compressed.stats.removedKeys} keys`)
+console.log(compressed.compressed) // {"users":[{"id":1,"name":"Alice"}]}
+console.log(`Tokens: ${compressed.originalTokens} → ${compressed.compressedTokens} (${compressed.removedNulls} nulls removed)`)
