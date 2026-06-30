@@ -276,6 +276,30 @@ Or use the **MCP server** to expose all tools to Claude Desktop, Cursor, and VS 
 
 ---
 
+## Examples
+
+### Node.js (`examples/node/`)
+
+| File | What it shows |
+|------|---------------|
+| [`ai-agent-pipeline.ts`](./examples/node/ai-agent-pipeline.ts) | End-to-end RAG pipeline: compress → chunk → detect PII → rerank |
+| [`rag-pipeline.ts`](./examples/node/rag-pipeline.ts) | Full RAG pre-processing: HTML scrape → compress → chunk → pack context |
+| [`pii-redaction.ts`](./examples/node/pii-redaction.ts) | PII detection, redaction, secret scanning |
+| [`json-utilities.ts`](./examples/node/json-utilities.ts) | Extract, flatten, merge, diff, validate, compress JSON |
+| [`context-compression.ts`](./examples/node/context-compression.ts) | HTML / Markdown / JSON compression + extractive summarization |
+| [`batch-processing.ts`](./examples/node/batch-processing.ts) | Batch PII scan, token counting, keyword indexing, secret scanning |
+
+### Python (`examples/python/`)
+
+| File | What it shows |
+|------|---------------|
+| [`quickstart.py`](./examples/python/quickstart.py) | Token estimation, chunking, PII, reranking, summarization, JSON diff |
+| [`pii_redaction.py`](./examples/python/pii_redaction.py) | PII scan/redact, prompt injection scoring, safe logging helper |
+| [`rag_pipeline.py`](./examples/python/rag_pipeline.py) | Compress → chunk → query expansion → rerank → pack context |
+| [`agent_tools.py`](./examples/python/agent_tools.py) | Tool implementations for LLM agents (extract, fix, validate, diff JSON) |
+
+---
+
 ## Links
 
 - **Web app**: [utilix.tech](https://utilix.tech) — try every tool in the browser
