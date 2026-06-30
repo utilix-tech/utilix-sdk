@@ -1,12 +1,12 @@
 # @utilix-tech/sdk
 
-> 130+ developer utility tools for Node.js, Python, and AI agents — JSON, encoding, hashing, text, color, CSS, network, and more.
+> 100+ developer utility tools for Node.js, Python, and AI agents — JSON, encoding, hashing, text, color, CSS, network, and more.
 
 [![npm](https://img.shields.io/npm/v/@utilix-tech/sdk)](https://www.npmjs.com/package/@utilix-tech/sdk)
 [![PyPI](https://img.shields.io/pypi/v/utilix-sdk)](https://pypi.org/project/utilix-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**[utilix.tech](https://utilix.tech)** · [Docs](https://docs.utilix.tech) · [npm](https://www.npmjs.com/package/@utilix-tech/sdk) · [PyPI](https://pypi.org/project/utilix-sdk/)
+**[utilix.tech](https://utilix.tech)** · [Docs](https://www.utilix.tech/docs) · [API Reference](https://api.utilix.tech/docs) · [npm](https://www.npmjs.com/package/@utilix-tech/sdk) · [PyPI](https://pypi.org/project/utilix-sdk/)
 
 ---
 
@@ -92,8 +92,8 @@ console.log(result.trimmed)           // trimmed text
 console.log(result.truncated)         // true if text was cut
 console.log(result.trimmedTokens)     // tokens in output
 
-// Split text into chunks with overlap
-const chunks = chunkText('Long document...', { maxTokens: 500, overlap: 50 })
+// Split text into chunks with overlap — positional: (text, chunkSize, overlap, strategy)
+const chunks = chunkText('Long document...', 500, 50, 'sentence')
 chunks.forEach(c => console.log(`Chunk ${c.index}: ${c.tokens} tokens`))
 ```
 
@@ -115,8 +115,8 @@ const md = compressMarkdown(markdownString, { stripFrontmatter: true })
 // Minify JSON (remove nulls, empty arrays/objects)
 const json = compressJson(jsonString, { removeNulls: true, sortKeys: true })
 
-// Summarize text to fit a token budget (extractive, no LLM)
-const summary = summarizeForLlm(longText, { maxTokens: 500, strategy: 'extractive' })
+// Summarize text to fit a token budget (extractive, no LLM) — positional: (text, maxTokens, strategy)
+const summary = summarizeForLlm(longText, 500, 'extractive')
 ```
 
 ### Structured Extraction
@@ -128,7 +128,7 @@ console.log(urls.urls) // [{ url, type, domain }]
 
 // Extract JSON embedded anywhere in LLM output
 const extracted = extractJson('Here is the result: {"key": "value"} done.')
-console.log(extracted.found) // [{ value: { key: 'value' }, raw: '{"key":"value"}' }]
+console.log(extracted.blocks) // [{ parsed: { key: 'value' }, raw: '{"key":"value"}' }]
 
 // Extract HTML tables into JSON arrays
 const tables = extractTables('<table><tr><th>Name</th></tr><tr><td>Alice</td></tr></table>')
@@ -149,7 +149,7 @@ const ranked = rerankChunks('what is machine learning?', [
   'Python was created in 1991...',
   'Supervised learning uses labeled data...',
 ])
-ranked.ranked.forEach(r => console.log(r.score, r.chunk))
+ranked.ranked.forEach(r => console.log(r.score, r.text))
 
 // Score a single text's relevance to a query
 const score = scoreRelevance('what is machine learning?', 'ML trains on data')
@@ -157,7 +157,7 @@ console.log(score.grade) // 'high' | 'medium' | 'low' | 'none'
 
 // Expand a query with synonyms for better retrieval
 const expanded = expandQuery('fast ML model inference')
-console.log(expanded.expanded) // 'fast rapid quick ML machine learning model inference prediction'
+console.log(expanded.terms) // ['fast', 'rapid', 'ML', 'machine learning', 'inference', ...]
 ```
 
 ### Security & PII
@@ -167,8 +167,8 @@ console.log(expanded.expanded) // 'fast rapid quick ML machine learning model in
 const pii = detectPii('Alice (alice@example.com) called 555-1234 on 2024-01-15')
 pii.findings.forEach(f => console.log(f.type, f.value))
 
-const redacted = redactPii('Email me at alice@example.com', { replacement: '[REDACTED]' })
-console.log(redacted.text) // 'Email me at [REDACTED]'
+const redacted = redactPii('Email me at alice@example.com', '[REDACTED]')
+console.log(redacted.redacted) // 'Email me at [REDACTED]'
 
 // Detect leaked secrets (API keys, tokens, passwords)
 const secrets = detectSecrets('OPENAI_API_KEY=sk-abc123...')
@@ -187,13 +187,13 @@ console.log(injection.isInjection) // true
 const flat = flattenJson({ a: { b: { c: 1 } } })
 console.log(flat) // { 'a.b.c': 1 }
 
-// Merge multiple JSON objects (deep merge, last-wins)
-const merged = mergeJson([{ a: 1 }, { b: 2 }, { a: 3 }])
-console.log(merged.result) // { a: 3, b: 2 }
+// Merge two JSON objects (deep merge, second wins)
+const merged = mergeJson({ a: 1 }, { b: 2, a: 3 })
+console.log(merged.merged) // { a: 3, b: 2 }
 
-// Structural diff two JSON objects
-const diff = diffJson('{"a":1,"b":2}', '{"a":1,"b":3,"c":4}')
-diff.entries.forEach(e => console.log(e.op, e.path))
+// Structural diff two JSON objects — pass objects, not strings
+const diff = diffJson({ a: 1, b: 2 }, { a: 1, b: 3, c: 4 })
+diff.differences.forEach(e => console.log(e.op, e.path))
 // changed  b
 // added    c
 
@@ -305,7 +305,7 @@ Or use the **MCP server** to expose all tools to Claude Desktop, Cursor, and VS 
 - **Web app**: [utilix.tech](https://utilix.tech) — try every tool in the browser
 - **REST API**: [api.utilix.tech](https://api.utilix.tech) — same tools over HTTP
 - **MCP server**: [@utilix-tech/mcp](https://www.npmjs.com/package/@utilix-tech/mcp) — Claude Desktop / Cursor integration
-- **Docs**: [docs.utilix.tech](https://docs.utilix.tech)
+- **Docs**: [utilix.tech/docs](https://www.utilix.tech/docs)
 
 ## License
 
