@@ -44,7 +44,7 @@ const hash = hashOne('password123', 'sha256')
 ## Quick Start — Python
 
 ```python
-from utilix.tools.json import parse_json, minify_json
+from utilix.tools.json_tools import parse_json, minify_json
 from utilix.tools.encoding import encode_base64, decode_base64
 from utilix.tools.hashing import hash_one
 
@@ -229,11 +229,11 @@ console.log(valid.valid, valid.errors)
 ## Python Modules
 
 ```python
-from utilix.tools.json import parse_json, diff_json, json_to_csv
+from utilix.tools.json_tools import parse_json, diff_json, json_to_csv
 from utilix.tools.encoding import encode_base64, encode_url
 from utilix.tools.hashing import hash_one, hash_password
 from utilix.tools.text import convert_case, slugify, diff_lines
-from utilix.tools.time import from_unix, diff_dates, get_next_runs
+from utilix.tools.time_tools import from_unix, diff_dates, get_next_runs
 from utilix.tools.color import parse_color, check_contrast, generate_palette
 from utilix.tools.ai_agent import (
     estimate_tokens, trim_to_tokens, chunk_text,
