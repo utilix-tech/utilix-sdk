@@ -1,6 +1,6 @@
 # @utilix-tech/sdk
 
-> 164+ developer utility tools for Node.js, Python, and AI agents — JSON, encoding, hashing, text, color, CSS, network, and more.
+> 166+ developer utility tools for Node.js, Python, and AI agents — JSON, encoding, hashing, text, color, CSS, network, and more.
 
 [![npm](https://img.shields.io/npm/v/@utilix-tech/sdk)](https://www.npmjs.com/package/@utilix-tech/sdk)
 [![PyPI](https://img.shields.io/pypi/v/utilix-sdk)](https://pypi.org/project/utilix-sdk/)
